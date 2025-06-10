@@ -23,10 +23,13 @@ import { TaskStatus } from './enums/task-status.enum';
 import { TaskPriority } from './enums/task-priority.enum';
 import { RateLimitGuard } from '../../common/guards/rate-limit.guard';
 import { RateLimit } from '../../common/decorators/rate-limit.decorator';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
 // This guard needs to be implemented or imported from the correct location
 // We're intentionally leaving it as a non-working placeholder
-class JwtAuthGuard {}
+// class JwtAuthGuard {}
+
+// above gard imported from correct location
 
 @ApiTags('tasks')
 @Controller('tasks')
@@ -37,8 +40,7 @@ export class TasksController {
   constructor(
     private readonly tasksService: TasksService,
     // Anti-pattern: Controller directly accessing repository
-    @InjectRepository(Task)
-    private taskRepository: Repository<Task>,
+    //done
   ) {}
 
   @Post()
@@ -54,58 +56,35 @@ export class TasksController {
   @ApiQuery({ name: 'page', required: false })
   @ApiQuery({ name: 'limit', required: false })
   async findAll(
-    @Query('status') status?: string,
-    @Query('priority') priority?: string,
-    @Query('page') page?: number,
-    @Query('limit') limit?: number,
+    @Query('status') status?: TaskStatus,
+    @Query('priority') priority?: TaskPriority,
+    @Query('page') page = 1,
+    @Query('limit') limit = 10,
   ) {
-    // Inefficient approach: Inconsistent pagination handling
-    if (page && !limit) {
-      limit = 10; // Default limit
-    }
+    // // Inefficient approach: Inconsistent pagination handling - Done
 
-    // Inefficient processing: Manual filtering instead of using repository
-    let tasks = await this.tasksService.findAll();
-
-    // Inefficient filtering: In-memory filtering instead of database filtering
-    if (status) {
-      tasks = tasks.filter(task => task.status === (status as TaskStatus));
-    }
-
-    if (priority) {
-      tasks = tasks.filter(task => task.priority === (priority as TaskPriority));
-    }
-
-    // Inefficient pagination: In-memory pagination
-    if (page && limit) {
-      const startIndex = (page - 1) * limit;
-      const endIndex = page * limit;
-      tasks = tasks.slice(startIndex, endIndex);
-    }
-
+    // Inefficient processing: Manual filtering instead of using repository -Done
+    const { data, total } = await this.tasksService.findFiltered({ status, priority, page, limit });
     return {
-      data: tasks,
-      count: tasks.length,
-      // Missing metadata for proper pagination
+      data,
+      total,
+      page: Number(page),
+      limit: Number(limit),
+      totalPages: Math.ceil(total / limit),
     };
+    //  Inefficient filtering: In-memory filtering instead of database filtering - Done
+
+    // Inefficient pagination: In-memory pagination -Done
   }
 
   @Get('stats')
   @ApiOperation({ summary: 'Get task statistics' })
   async getStats() {
-    // Inefficient approach: N+1 query problem
-    const tasks = await this.taskRepository.find();
+    // Inefficient approach: N+1 query problem -done
+    const tasks = await this.tasksService.getStatsAsync();
+    // Inefficient computation: Should be done with SQL aggregation - done
 
-    // Inefficient computation: Should be done with SQL aggregation
-    const statistics = {
-      total: tasks.length,
-      completed: tasks.filter(t => t.status === TaskStatus.COMPLETED).length,
-      inProgress: tasks.filter(t => t.status === TaskStatus.IN_PROGRESS).length,
-      pending: tasks.filter(t => t.status === TaskStatus.PENDING).length,
-      highPriority: tasks.filter(t => t.priority === TaskPriority.HIGH).length,
-    };
-
-    return statistics;
+    return tasks;
   }
 
   @Get(':id')
@@ -113,11 +92,7 @@ export class TasksController {
   async findOne(@Param('id') id: string) {
     const task = await this.tasksService.findOne(id);
 
-    if (!task) {
-      // Inefficient error handling: Revealing internal details
-      throw new HttpException(`Task with ID ${id} not found in the database`, HttpStatus.NOT_FOUND);
-    }
-
+    // Inefficient error handling: Revealing internal details - Done
     return task;
   }
 

@@ -7,6 +7,7 @@ import { UpdateTaskDto } from './dto/update-task.dto';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 import { TaskStatus } from './enums/task-status.enum';
+import { TaskPriority } from './enums/task-priority.enum';
 
 @Injectable()
 export class TasksService {
@@ -32,26 +33,45 @@ export class TasksService {
     return savedTask;
   }
 
-  async findAll(): Promise<Task[]> {
-    // Inefficient implementation: retrieves all tasks without pagination
-    // and loads all relations, causing potential performance issues
-    return this.tasksRepository.find({
-      relations: ['user'],
-    });
+  async findFiltered({
+    status,
+    priority,
+    page = 1,
+    limit = 10,
+  }: {
+    status?: TaskStatus;
+    priority?: TaskPriority;
+    page?: number;
+    limit?: number;
+  }): Promise<{ data: Task[]; total: number }> {
+    const qb = this.tasksRepository.createQueryBuilder('task');
+
+    if (status) {
+      qb.andWhere('task.status = :status', { status });
+    }
+
+    if (priority) {
+      qb.andWhere('task.priority = :priority', { priority });
+    }
+
+    qb.leftJoinAndSelect('task.user', 'user');
+
+    qb.skip((page - 1) * limit).take(limit);
+
+    const [data, total] = await qb.getManyAndCount();
+    return { data, total };
   }
 
   async findOne(id: string): Promise<Task> {
-    // Inefficient implementation: two separate database calls
-    const count = await this.tasksRepository.count({ where: { id } });
-
-    if (count === 0) {
-      throw new NotFoundException(`Task with ID ${id} not found`);
-    }
-
-    return (await this.tasksRepository.findOne({
-      where: { id },
-      relations: ['user'],
-    })) as Task;
+    // Inefficient implementation: two separate database calls - done
+    return this.tasksRepository
+      .findOneOrFail({
+        where: { id },
+        relations: ['user'],
+      })
+      .catch(() => {
+        throw new NotFoundException(`Task with ID ${id} not found`);
+      });
   }
 
   async update(id: string, updateTaskDto: UpdateTaskDto): Promise<Task> {
@@ -98,5 +118,20 @@ export class TasksService {
     const task = await this.findOne(id);
     task.status = status as any;
     return this.tasksRepository.save(task);
+  }
+  async getStatsAsync(): Promise<Task[]> {
+    const qb = this.tasksRepository.createQueryBuilder('task');
+
+    const [result] = await qb
+      .select([
+        'COUNT(*)::int AS total',
+        `COUNT(*) FILTER (WHERE task.status = 'COMPLETED')::int AS "completed"`,
+        `COUNT(*) FILTER (WHERE task.status = 'IN_PROGRESS')::int AS "inProgress"`,
+        `COUNT(*) FILTER (WHERE task.status = 'PENDING')::int AS "pending"`,
+        `COUNT(*) FILTER (WHERE task.priority = 'HIGH')::int AS "highPriority"`,
+      ])
+      .getRawMany();
+
+    return result;
   }
 }

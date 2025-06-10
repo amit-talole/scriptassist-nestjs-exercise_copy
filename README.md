@@ -252,3 +252,16 @@ The API should expose the following endpoints:
 - `POST /tasks/batch` - Batch operations on tasks
 
 Good luck! This challenge is designed to test the skills of experienced engineers in creating scalable, maintainable, and secure systems.
+
+
+## following Problem Resolve
+
+- `Inappropriate separation of concerns (e.g., controllers directly using repositories)` -move Inappropriate code into service file in task.service.ts
+- `Inefficient approach: N+1 query problem` - problems resolve find() internally fetches tasks multiple DB queries so use SQL query
+- `Inefficient computation: Should be done with SQL aggregation` - done in SQL query
+- `Inefficient in-memory filtering and pagination that won't scale` - Done
+- `Inefficient processing: Manual filtering instead of using repository` -  Done
+- `Inefficient filtering: In-memory filtering instead of database filtering` - Done
+- `Missing metadata for proper pagination` - Done
+- `Inefficient implementation: two separate database calls`- Done
+- `Inefficient error handling: Revealing internal details` -Done
