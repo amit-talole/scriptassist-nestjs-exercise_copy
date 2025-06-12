@@ -265,3 +265,6 @@ Good luck! This challenge is designed to test the skills of experienced engineer
 - `Missing metadata for proper pagination` - Done
 - `Inefficient implementation: two separate database calls`- Done
 - `Inefficient error handling: Revealing internal details` -Done
+- `No validation if task exists before update` - Done
+- `No validation if task exists before removal` - Done
+- `No status code returned for success`  - Done

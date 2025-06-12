@@ -1,5 +1,5 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
+import { Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
+import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Task } from './entities/task.entity';
 import { CreateTaskDto } from './dto/create-task.dto';
@@ -8,6 +8,7 @@ import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 import { TaskStatus } from './enums/task-status.enum';
 import { TaskPriority } from './enums/task-priority.enum';
+import { DataSource } from 'typeorm';
 
 @Injectable()
 export class TasksService {
@@ -16,6 +17,8 @@ export class TasksService {
     private tasksRepository: Repository<Task>,
     @InjectQueue('task-processing')
     private taskQueue: Queue,
+    @InjectDataSource()
+    private readonly dataSource: DataSource,
   ) {}
 
   async create(createTaskDto: CreateTaskDto): Promise<Task> {
@@ -75,36 +78,46 @@ export class TasksService {
   }
 
   async update(id: string, updateTaskDto: UpdateTaskDto): Promise<Task> {
-    // Inefficient implementation: multiple database calls
-    // and no transaction handling
-    const task = await this.findOne(id);
+    return await this.dataSource.transaction(async manager => {
+      const taskRepository = manager.getRepository(Task);
 
-    const originalStatus = task.status;
+      // Preload merges the ID and update DTO into a Task entity
+      const task = await taskRepository.findOne({ where: { id } });
 
-    // Directly update each field individually
-    if (updateTaskDto.title) task.title = updateTaskDto.title;
-    if (updateTaskDto.description) task.description = updateTaskDto.description;
-    if (updateTaskDto.status) task.status = updateTaskDto.status;
-    if (updateTaskDto.priority) task.priority = updateTaskDto.priority;
-    if (updateTaskDto.dueDate) task.dueDate = updateTaskDto.dueDate;
+      if (!task) {
+        throw new NotFoundException(`Task with ID ${id} not found`);
+      }
 
-    const updatedTask = await this.tasksRepository.save(task);
+      const originalStatus = task.status;
 
-    // Add to queue if status changed, but without proper error handling
-    if (originalStatus !== updatedTask.status) {
-      this.taskQueue.add('task-status-update', {
-        taskId: updatedTask.id,
-        status: updatedTask.status,
-      });
-    }
+      Object.assign(task, updateTaskDto);
 
-    return updatedTask;
+      const updatedTask = await taskRepository.save(task);
+
+      if (updateTaskDto.status && updateTaskDto.status !== originalStatus) {
+        try {
+          await this.taskQueue.add('tasktask-status-update', {
+            taskId: updatedTask.id,
+            status: updatedTask.status,
+          });
+        } catch (err) {
+          console.error('Queue add failed:', err);
+          throw new InternalServerErrorException('Failed to enqueue task update');
+        }
+      }
+
+      return updatedTask;
+    });
   }
 
-  async remove(id: string): Promise<void> {
-    // Inefficient implementation: two separate database calls
-    const task = await this.findOne(id);
-    await this.tasksRepository.remove(task);
+  async remove(id: string): Promise<{ message: string }> {
+    const result = await this.tasksRepository.delete(id);
+
+    if (result.affected === 0) {
+      throw new NotFoundException(`Task with ID ${id} not found`);
+    } else {
+      return { message: `Task with ID ${id} deleted successfully` };
+    }
   }
 
   async findByStatus(status: TaskStatus): Promise<Task[]> {

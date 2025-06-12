@@ -99,15 +99,15 @@ export class TasksController {
   @Patch(':id')
   @ApiOperation({ summary: 'Update a task' })
   update(@Param('id') id: string, @Body() updateTaskDto: UpdateTaskDto) {
-    // No validation if task exists before update
+    // No validation if task exists before update -Done
     return this.tasksService.update(id, updateTaskDto);
   }
 
   @Delete(':id')
   @ApiOperation({ summary: 'Delete a task' })
   remove(@Param('id') id: string) {
-    // No validation if task exists before removal
-    // No status code returned for success
+    // No validation if task exists before removal - Done
+    // No status code returned for success - Done
     return this.tasksService.remove(id);
   }
 
