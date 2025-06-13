@@ -268,3 +268,4 @@ Good luck! This challenge is designed to test the skills of experienced engineer
 - `No validation if task exists before update` - Done
 - `No validation if task exists before removal` - Done
 - `No status code returned for success`  - Done
+- `Inefficient batch processing: Sequential processing instead of bulk operations` - Done
