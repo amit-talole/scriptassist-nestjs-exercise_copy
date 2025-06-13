@@ -1,4 +1,10 @@
-import { Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
+import {
+  HttpException,
+  HttpStatus,
+  Injectable,
+  InternalServerErrorException,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Task } from './entities/task.entity';
@@ -22,18 +28,35 @@ export class TasksService {
   ) {}
 
   async create(createTaskDto: CreateTaskDto): Promise<Task> {
-    // Inefficient implementation: creates the task but doesn't use a single transaction
-    // for creating and adding to queue, potential for inconsistent state
-    const task = this.tasksRepository.create(createTaskDto);
-    const savedTask = await this.tasksRepository.save(task);
+    try {
+      if (createTaskDto?.dueDate?.trim()) {
+        const checkDate = await this.isValidIsoUtc(createTaskDto?.dueDate);
+        if (!checkDate) {
+          throw new HttpException('Invalid Date Format', 401);
+        }
+      }
+      return await this.dataSource.transaction(async manager => {
+        const task = manager.getRepository(Task).create(createTaskDto);
+        const savedTask = await manager.getRepository(Task).save(task);
 
-    // Add to queue without waiting for confirmation or handling errors
-    this.taskQueue.add('task-status-update', {
-      taskId: savedTask.id,
-      status: savedTask.status,
-    });
+        try {
+          await this.taskQueue.add('task-status-update', {
+            taskId: savedTask.id,
+            status: savedTask.status,
+          });
+        } catch (error) {
+          // Optionally: Log error, rollback manually, or rethrow
+          throw new InternalServerErrorException('Failed to queue task for processing');
+        }
 
-    return savedTask;
+        return savedTask;
+      });
+    } catch (error: any) {
+      if (error?.status === HttpStatus.UNAUTHORIZED) {
+        throw new HttpException(error?.response, error?.status);
+      }
+      throw new InternalServerErrorException(error?.response);
+    }
   }
 
   async findFiltered({
@@ -146,5 +169,12 @@ export class TasksService {
       .getRawMany();
 
     return result;
+  }
+  async isValidIsoUtc(dateStr: any) {
+    const isoUtcWithMillisRegex = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/;
+    return (
+      isoUtcWithMillisRegex.test(new Date(dateStr)?.toISOString()) &&
+      !isNaN(new Date(new Date(dateStr)?.toISOString()).getTime())
+    );
   }
 }

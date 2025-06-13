@@ -1,10 +1,11 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User } from './entities/user.entity';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import * as bcrypt from 'bcrypt';
+import { validate as isUUID } from 'uuid';
 
 @Injectable()
 export class UsersService {
@@ -27,6 +28,9 @@ export class UsersService {
   }
 
   async findOne(id: string): Promise<User> {
+    if (!isUUID(id)) {
+      throw new BadRequestException(`Invalid UUID: ${id}`);
+    }
     const user = await this.usersRepository.findOne({ where: { id } });
     if (!user) {
       throw new NotFoundException(`User with ID ${id} not found`);
