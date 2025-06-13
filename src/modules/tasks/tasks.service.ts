@@ -177,4 +177,61 @@ export class TasksService {
       !isNaN(new Date(new Date(dateStr)?.toISOString()).getTime())
     );
   }
+  async updateManyWithSuccessStatus(id: string[]): Promise<Task> {
+    return await this.dataSource.transaction(async manager => {
+      const taskRepository = manager.getRepository(Task);
+      const results = [];
+      const bulkUpdate = [];
+
+      // Preload merges the ID and update DTO into a Task entity
+      const task = await taskRepository.query(
+        `update tasks set status = '${TaskStatus.COMPLETED}' where id in ('${id.join().replace(',', "','")}') and status <> '${TaskStatus.COMPLETED}' returning *`,
+      );
+      console.log('task', task);
+      for (let index = 0; index < task[0].length; index += 1) {
+        results.push({ taskId: task[0][index].id, success: true, result: task[index] });
+        bulkUpdate.push({
+          name: 'tasktask-status-update',
+          data: {
+            taskId: task[0][index].id,
+            status: TaskStatus.COMPLETED,
+          },
+        });
+      }
+
+      if (!results.length) {
+        throw new NotFoundException(`Task not found`);
+      }
+      if (results && bulkUpdate) {
+        try {
+          await this.taskQueue.addBulk(bulkUpdate);
+        } catch (err) {
+          console.error('Queue add failed:', err);
+          throw new InternalServerErrorException('Failed to enqueue task update');
+        }
+      }
+
+      return task;
+    });
+  }
+  async bulkDelete(
+    taskIds: string[],
+  ): Promise<{ taskId: string; success: boolean; message: string }[]> {
+    const results = [];
+
+    for (const taskId of taskIds) {
+      try {
+        const res = await this.remove(taskId); // uses your existing `remove()` method
+        results.push({ taskId, success: true, message: res.message });
+      } catch (error) {
+        results.push({
+          taskId,
+          success: false,
+          message: error instanceof Error ? error.message : 'Unknown error',
+        });
+      }
+    }
+
+    return results;
+  }
 }
