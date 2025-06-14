@@ -226,4 +226,9 @@ describe('AppController (e2e)', () => {
       .expect(404);
     expect(response.body).toHaveProperty('statusCode', 404);
   });
+
+  it('/health (GET) - success with token', async () => {
+    const response = await request(app.getHttpServer()).get('/health').expect(200);
+    expect(Array.isArray(response.body));
+  });
 });

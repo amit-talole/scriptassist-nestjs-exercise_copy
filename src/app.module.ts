@@ -13,6 +13,7 @@ import { CacheService } from './common/services/cache.service';
 import { ThrottlerStorageRedisService } from '@nest-lab/throttler-storage-redis';
 import { Redis } from 'ioredis';
 import { APP_GUARD } from '@nestjs/core';
+import { AppController } from './app.controller';
 
 @Module({
   imports: [
@@ -92,5 +93,6 @@ import { APP_GUARD } from '@nestjs/core';
     // but creates tight coupling
     CacheService,
   ],
+  controllers: [AppController],
 })
 export class AppModule {}

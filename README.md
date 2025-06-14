@@ -282,6 +282,11 @@ Good luck! This challenge is designed to test the skills of experienced engineer
 - `Strengthen authentication with refresh token rotation` - Done
 - `adding Role Gaurd` - Done
 
+## Resilience & Observability
+- `Implement comprehensive error handling and recovery mechanisms` - Done
+- `Create meaningful health checks`- Done
+
+
 ## Suggestion By My Side 
 - `use Prisma Insted Of TypeOrm`
 - `Setup another Service For Cron Job`
