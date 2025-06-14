@@ -278,6 +278,12 @@ Good luck! This challenge is designed to test the skills of experienced engineer
 - `Create a consistent transaction management strategy` - Done using TypeOrm dataSource transaction Query 
 - `Apply SOLID principles throughout the codebase` - Done
 
+## Security Enhancements
+- `Strengthen authentication with refresh token rotation` - Done
+- `adding Role Gaurd` - Done
+
+
+
 ## Suggestion By My Side 
 - `use Prisma Insted Of TypeOrm`
 - `Setup another Service For Cron Job`

@@ -15,9 +15,15 @@ import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { ThrottlerGuard } from '@nestjs/throttler';
+import { RolesGuard } from '../../common/guards/roles.guard';
+import { Roles } from '@common/decorators/roles.decorator';
+import { RolesEnum } from '@common/enum/role-enum';
 
 @ApiTags('users')
 @Controller('users')
+@UseGuards(JwtAuthGuard, ThrottlerGuard, RolesGuard)
+@Roles(RolesEnum.user)
 @UseInterceptors(ClassSerializerInterceptor)
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}

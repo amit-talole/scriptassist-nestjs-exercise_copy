@@ -25,6 +25,9 @@ import { RateLimitGuard } from '../../common/guards/rate-limit.guard';
 import { RateLimit } from '../../common/decorators/rate-limit.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { Throttle, ThrottlerGuard } from '@nestjs/throttler';
+import { RolesGuard } from '../../common/guards/roles.guard';
+import { Roles } from '@common/decorators/roles.decorator';
+import { RolesEnum } from '../../common/enum/role-enum';
 
 // This guard needs to be implemented or imported from the correct location
 // We're intentionally leaving it as a non-working placeholder
@@ -34,7 +37,8 @@ import { Throttle, ThrottlerGuard } from '@nestjs/throttler';
 
 @ApiTags('tasks')
 @Controller('tasks')
-@UseGuards(JwtAuthGuard, ThrottlerGuard)
+@UseGuards(JwtAuthGuard, ThrottlerGuard, RolesGuard)
+@Roles(RolesEnum.user)
 @Throttle({ default: { limit: 100, ttl: 6000 } })
 @ApiBearerAuth()
 export class TasksController {
