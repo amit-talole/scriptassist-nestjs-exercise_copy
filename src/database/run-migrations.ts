@@ -53,6 +53,17 @@ async function runMigrations() {
         )
       `);
 
+      await dataSource.query(`
+        CREATE TABLE IF NOT EXISTS "user_token" (
+          "id" uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
+          "refreshToken" text,
+          "user_id" uuid NOT NULL unique,
+          "created_at" TIMESTAMP NOT NULL DEFAULT now(),
+          "updated_at" TIMESTAMP NOT NULL DEFAULT now(),
+          CONSTRAINT "fk_user_id" FOREIGN KEY ("user_id") REFERENCES "users" ("id") ON DELETE CASCADE
+        )
+      `);
+
       console.log('Tables created successfully.');
     }
   } catch (error) {

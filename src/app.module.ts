@@ -2,7 +2,7 @@ import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { BullModule } from '@nestjs/bullmq';
-import { ThrottlerModule } from '@nestjs/throttler';
+import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { ScheduleModule } from '@nestjs/schedule';
 import { UsersModule } from './modules/users/users.module';
 import { TasksModule } from './modules/tasks/tasks.module';
@@ -10,6 +10,9 @@ import { AuthModule } from './modules/auth/auth.module';
 import { TaskProcessorModule } from './queues/task-processor/task-processor.module';
 import { ScheduledTasksModule } from './queues/scheduled-tasks/scheduled-tasks.module';
 import { CacheService } from './common/services/cache.service';
+import { ThrottlerStorageRedisService } from '@nest-lab/throttler-storage-redis';
+import { Redis } from 'ioredis';
+import { APP_GUARD } from '@nestjs/core';
 
 @Module({
   imports: [
@@ -55,10 +58,16 @@ import { CacheService } from './common/services/cache.service';
     ThrottlerModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
-      useFactory: (configService: ConfigService) => [
+      useFactory: async (configService: ConfigService) => [
         {
-          ttl: 60,
-          limit: 10,
+          ttl: 60, // Time to live in seconds
+          limit: 10, // Max 10 requests per ttl window
+          storage: new ThrottlerStorageRedisService(
+            new Redis({
+              host: configService.get('REDIS_HOST'),
+              port: configService.get('REDIS_PORT'),
+            }),
+          ),
         },
       ],
     }),
@@ -76,6 +85,7 @@ import { CacheService } from './common/services/cache.service';
     // Inefficient: Global cache service with no configuration options
     // This creates a single in-memory cache instance shared across all modules
     CacheService,
+    { provide: APP_GUARD, useClass: ThrottlerGuard },
   ],
   exports: [
     // Exporting the cache service makes it available to other modules

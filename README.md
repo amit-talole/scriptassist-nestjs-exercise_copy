@@ -269,3 +269,16 @@ Good luck! This challenge is designed to test the skills of experienced engineer
 - `No validation if task exists before removal` - Done
 - `No status code returned for success`  - Done
 - `Inefficient batch processing: Sequential processing instead of bulk operations` - Done
+
+## System Problem Resolve
+- `Inefficient in-memory storage for rate limiting` - Implement Redis for Ip cashing and ThrottlerGuard for better solution.
+
+## Architectural Improvements
+- `Implement proper domain separation and service abstractions` -  done 
+- `Create a consistent transaction management strategy` - Done using TypeOrm dataSource transaction Query 
+- `Apply SOLID principles throughout the codebase` - Done
+
+## Suggestion By My Side 
+- `use Prisma Insted Of TypeOrm`
+- `Setup another Service For Cron Job`
+

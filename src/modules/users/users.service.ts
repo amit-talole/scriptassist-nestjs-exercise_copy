@@ -1,7 +1,7 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { User } from './entities/user.entity';
+import { User, UserToken } from './entities/user.entity';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import * as bcrypt from 'bcrypt';
@@ -12,6 +12,8 @@ export class UsersService {
   constructor(
     @InjectRepository(User)
     private usersRepository: Repository<User>,
+    @InjectRepository(UserToken)
+    private tokenRepository: Repository<UserToken>,
   ) {}
 
   async create(createUserDto: CreateUserDto): Promise<User> {
@@ -56,5 +58,19 @@ export class UsersService {
   async remove(id: string): Promise<void> {
     const user = await this.findOne(id);
     await this.usersRepository.remove(user);
+  }
+  async findByToken(token: string): Promise<UserToken | null> {
+    return this.tokenRepository.findOne({ where: { refreshToken: token } });
+  }
+  async upsertRefreshToken(token: string, userId: string): Promise<any> {
+    return this.tokenRepository.upsert(
+      {
+        userId: userId,
+        refreshToken: token,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+      ['userId'],
+    );
   }
 }

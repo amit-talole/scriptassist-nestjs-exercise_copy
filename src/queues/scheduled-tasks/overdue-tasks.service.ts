@@ -43,6 +43,17 @@ export class OverdueTasksService {
     // Add tasks to the queue to be processed
     // TODO: Implement adding tasks to the queue
 
+    for (const task of overdueTasks) {
+      try {
+        await this.taskQueue.add('task-overdue-handler', {
+          taskId: task.id,
+          dueDate: task.dueDate,
+        });
+      } catch (error: any) {
+        this.logger.error(`Failed to queue overdue task ${task.id}: ${error?.message}`);
+      }
+    }
+
     this.logger.debug('Overdue tasks check completed');
   }
 }

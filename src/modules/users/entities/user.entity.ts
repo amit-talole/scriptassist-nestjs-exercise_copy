@@ -2,8 +2,11 @@ import {
   Column,
   CreateDateColumn,
   Entity,
+  JoinColumn,
+  ManyToOne,
   OneToMany,
   PrimaryGeneratedColumn,
+  Unique,
   UpdateDateColumn,
 } from 'typeorm';
 import { Task } from '../../tasks/entities/task.entity';
@@ -29,6 +32,35 @@ export class User {
 
   @OneToMany(() => Task, task => task.user)
   tasks: Task[];
+
+  @CreateDateColumn({ name: 'created_at' })
+  createdAt: Date;
+
+  @UpdateDateColumn({ name: 'updated_at' })
+  updatedAt: Date;
+
+  @Column({ nullable: true })
+  refreshToken: string;
+
+  @OneToMany(() => UserToken, userToken => userToken.user)
+  UserToken: UserToken[];
+}
+
+@Entity('user_token')
+@Unique(['userId'])
+export class UserToken {
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
+
+  @Column()
+  refreshToken: string;
+
+  @Column({ name: 'user_id' })
+  userId: string;
+
+  @ManyToOne(() => User, (user: any) => user.UserToken)
+  @JoinColumn({ name: 'user_id' })
+  user: User;
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
