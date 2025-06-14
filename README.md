@@ -282,8 +282,6 @@ Good luck! This challenge is designed to test the skills of experienced engineer
 - `Strengthen authentication with refresh token rotation` - Done
 - `adding Role Gaurd` - Done
 
-
-
 ## Suggestion By My Side 
 - `use Prisma Insted Of TypeOrm`
 - `Setup another Service For Cron Job`
